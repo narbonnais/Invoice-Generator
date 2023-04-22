@@ -1,0 +1,47 @@
+{
+    "entries": [
+        {
+            "client_alias": "techcorp",
+            "invoice_date": "2022-02-14",
+            "services": [
+                {
+                    "name": "IT Infrastructure Consultation",
+                    "units": 1,
+                    "rate": 1200.0
+                }
+            ]
+        },
+        {
+            "client_alias": "techcorp",
+            "invoice_date": "2022-03-12",
+            "services": [
+                {
+                    "name": "Cloud Migration Strategy",
+                    "units": 1,
+                    "rate": 2700.0
+                },
+                {
+                    "name": "Reimbursements",
+                    "units": 1,
+                    "rate": 500.0
+                }
+            ]
+        },
+        {
+            "client_alias": "techcorp",
+            "invoice_date": "2022-04-04",
+            "services": [
+                {
+                    "name": "Project Management",
+                    "units": 10,
+                    "rate": 80.0
+                },
+                {
+                    "name": "Reimbursements",
+                    "units": 1,
+                    "rate": 300.0
+                }
+            ]
+        }
+    ]
+}

@@ -1,0 +1,38 @@
+data/backup
+# data/invoices
+data/personal
+
+# General
+.DS_Store
+*.log
+*.pyc
+*.pyo
+*.pyd
+*.swp
+*.bak
+*.tmp
+*.pid
+*.~
+__pycache__/
+
+# Python virtual environment
+venv/
+env/
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# Visual Studio Code
+.vscode/
+
+# PyCharm
+.idea/
+
+# Compiled Python files
+*.pyc
+*.pyo
+*.pyd
+
+# OS generated files
+ehthumbs.db
+Thumbs.db
