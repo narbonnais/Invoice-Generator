@@ -7,8 +7,6 @@ This Python script allows you to create PDF invoices for your consulting service
 - `yaml`
 - `pdfkit`
 - `jinja2`
-- `argparse`
-- `shutil`
 
 ## 📦 Installation
 
@@ -63,6 +61,22 @@ python3 invoices.py reset
 ```
 
 The existing invoices will be backed up in the `data/backup` folder.
+
+### Computing total income for a given period
+
+To compute the total income for a given period, run the following command:
+
+```bash
+python3 invoices.py compute_income -s <start_date> -e <end_date>
+```
+
+For example:
+
+```bash
+python3 invoices.py compute_income -s 2021-01-01 -e 2021-12-31
+```
+
+Both dates are optional. If no start date is provided, the script will use the `1970-01-01`. If no end date is provided, the script will use the current date.
 
 ## 📝 Sample invoice
 

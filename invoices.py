@@ -324,6 +324,24 @@ def create_invoice(client_alias: str, services: list[dict], invoice_date: str = 
     append_history(client_alias, invoice)
 
 
+def compute_income(history: History, start_date: str = None, end_date: str = None) -> None:
+    """Compute the income for a given date range"""
+    if not start_date:
+        start_date = "1970-01-01"
+    if not end_date:
+        end_date = format_current_date()
+    start_date = datetime.strptime(start_date, "%Y-%m-%d")
+    end_date = datetime.strptime(end_date, "%Y-%m-%d")
+
+    total_income = 0
+    for entry in history.entries:
+        invoice_date = datetime.strptime(entry.invoice_date, "%Y-%m-%d")
+        if start_date <= invoice_date <= end_date:
+            for service in entry.services:
+                total_income += service.rate * service.units
+    print(f"Total income: {total_income:.2f}")
+
+
 def ensure_data_paths_exists():
     """Ensure the data paths exists"""
     os.makedirs(DATA_PATH, exist_ok=True)
@@ -362,6 +380,11 @@ def main():
 
     reset_parser = subparsers.add_parser(
         "reset", help="Reset the invoice number and delete all invoices")
+    
+    compute_income_parser = subparsers.add_parser(
+        "compute_income", help="Compute the income for a given period")
+    compute_income_parser.add_argument("-s", "--start_date", help="Start date of the period in format YYYY-MM-DD")
+    compute_income_parser.add_argument("-e", "--end_date", help="End date of the period in format YYYY-MM-DD")
 
     args = parser.parse_args()
 
@@ -376,6 +399,10 @@ def main():
         backup_invoices()
         clear_invoices()
         reset_invoice_number()
+
+    elif args.command == "compute_income":
+        history = load_history()
+        compute_income(history, args.start_date, args.end_date)
 
 
 if __name__ == "__main__":
