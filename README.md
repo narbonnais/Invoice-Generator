@@ -67,16 +67,18 @@ The existing invoices will be backed up in the `data/backup` folder.
 To compute the total income for a given period, run the following command:
 
 ```bash
-python3 invoices.py compute_income -s <start_date> -e <end_date>
+python3 invoices.py compute_income -s <start_date> -e <end_date> -c <currency>
 ```
 
 For example:
 
 ```bash
-python3 invoices.py compute_income -s 2021-01-01 -e 2021-12-31
+python3 invoices.py compute_income -s 2021-01-01 -e 2021-12-31 -c EUR
 ```
 
 Both dates are optional. If no start date is provided, the script will use the `1970-01-01`. If no end date is provided, the script will use the current date.
+
+Currency is optional. If no currency is provided, the script will use `USD` as default (the base currency for invoice). Note that the conversion is done on the invoice date.
 
 ### Summarizes activity per year and per quarter
 
@@ -105,6 +107,8 @@ Summary of the History:
   total: $7,299.35
 ------------------------------
 ```
+
+Currency is optional. If no currency is provided, the script will use `USD` as default (the base currency for invoice). Note that the conversion is done on the invoice date.
 
 ## 📝 Sample invoice
 

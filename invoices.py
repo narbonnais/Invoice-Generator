@@ -6,6 +6,7 @@ from datetime import datetime
 import argparse
 import json
 
+import requests
 import shutil
 from jinja2 import Environment, FileSystemLoader
 import pdfkit
@@ -33,6 +34,10 @@ HISTORY_FILE = "history.json"
 
 BACKUP_DATA_PATH = f"{DATA_PATH}/backup"
 BACKUP_FILE_PREFIX = "backup_"
+
+BASE_CURRENCY = "USD"
+CONVERT_API = f"https://api.frankfurter.app"
+
 
 
 @dataclass
@@ -159,12 +164,6 @@ class Invoice:
     def add_service(self, service: Service) -> None:
         """Add a service to the invoice"""
         self.services.append(service)
-
-
-class ServiceNotFoundError(Exception):
-    """Service not found error"""
-    pass
-
 
 class ClientNotFoundError(Exception):
     """Client not found error"""
@@ -304,6 +303,27 @@ def regenerate_invoices(history: History) -> None:
         save_invoice_to_pdf(invoice_html, pdf_file_path)
 
 
+def convert_currency(amount: float, target_currency: str, conversion_date: str = None) -> float:
+    """Convert the amount to the target currency using an API"""
+    if target_currency == BASE_CURRENCY:
+        return amount
+    
+    # Modify the API request URL to include the date
+    historical_api = f"{CONVERT_API}/{conversion_date}?from={BASE_CURRENCY}&to={target_currency}"
+
+    response = requests.get(historical_api)
+    if response.status_code != 200:
+        raise Exception("Failed to fetch currency conversion rates")
+
+    rates = response.json()["rates"]
+    if target_currency not in rates:
+        raise Exception(f"Currency {target_currency} not supported")
+
+    conversion_rate = rates[target_currency]
+    return amount * conversion_rate
+
+
+
 def create_invoice(client_alias: str, services: list[dict], invoice_date: str = None) -> None:
     """Create an invoice for a client"""
     consultant = get_consultant_information()
@@ -330,7 +350,7 @@ def create_invoice(client_alias: str, services: list[dict], invoice_date: str = 
     append_history(client_alias, invoice)
 
 
-def compute_income(history: History, start_date: str = None, end_date: str = None) -> None:
+def compute_income(history: History, start_date: str = None, end_date: str = None, currency: str = None) -> None:
     """Compute the income for a given date range"""
     if not start_date:
         start_date = "1970-01-01"
@@ -344,13 +364,19 @@ def compute_income(history: History, start_date: str = None, end_date: str = Non
         invoice_date = datetime.strptime(entry.invoice_date, "%Y-%m-%d")
         if start_date <= invoice_date <= end_date:
             for service in entry.services:
-                total_income += service.total
+                if currency:
+                    total_income += convert_currency(service.total, currency, entry.invoice_date)
+                else:
+                    total_income += service.total
 
-    formatted_revenue = "${:,.2f}".format(total_income)
+    if currency:
+        formatted_revenue = currency + " {:,.2f}".format(total_income)
+    else:
+        formatted_revenue = "${:,.2f}".format(total_income)
     print(f"Total income: {formatted_revenue}")
 
 
-def summarize_history(history: History) -> None:
+def summarize_history(history: History, currency: str = None) -> None:
     """Summarizes history per year and per quarter"""
     summary = defaultdict(lambda: defaultdict(float))
 
@@ -362,6 +388,8 @@ def summarize_history(history: History) -> None:
 
         for service in entry.services:
             revenue = service.total
+            if currency:
+                revenue = convert_currency(revenue, currency, entry.invoice_date)
             summary[str(year)][quarter_key] += revenue
             summary[str(year)]["total"] += revenue
 
@@ -370,7 +398,10 @@ def summarize_history(history: History) -> None:
     for year, subtotals in sorted(summary.items()):
         print(f"{year}:")
         for quarter, revenue in sorted(subtotals.items()):
-            formatted_revenue = "${:,.2f}".format(revenue)
+            if currency:
+                formatted_revenue = currency + " {:,.2f}".format(revenue)
+            else:
+                formatted_revenue = "${:,.2f}".format(revenue)
             print(f"  {quarter}: {formatted_revenue}")
     print("-" * 30)
 
@@ -381,6 +412,7 @@ def ensure_data_paths_exists():
     os.makedirs(HISTORY_DATA_PATH, exist_ok=True)
     os.makedirs(OUTPUT_PDF_FOLDER, exist_ok=True)
     os.makedirs(BACKUP_DATA_PATH, exist_ok=True)
+
 
 
 def main():
@@ -418,9 +450,11 @@ def main():
         "compute_income", help="Compute the income for a given period")
     compute_income_parser.add_argument("-s", "--start_date", help="Start date of the period in format YYYY-MM-DD")
     compute_income_parser.add_argument("-e", "--end_date", help="End date of the period in format YYYY-MM-DD")
+    compute_income_parser.add_argument("-c", "--currency", help="Currency to use for the computation")
 
     summarize_history_parser = subparsers.add_parser(
         "summarize_history", help="Summarize the history")
+    summarize_history_parser.add_argument("-c", "--currency", help="Currency to use for the computation")
 
     args = parser.parse_args()
 
@@ -438,12 +472,15 @@ def main():
 
     elif args.command == "compute_income":
         history = load_history()
-        compute_income(history, args.start_date, args.end_date)
+        compute_income(history, args.start_date, args.end_date, args.currency)
 
     elif args.command == "summarize_history":
         history = load_history()
-        summarize_history(history)
+        summarize_history(history, args.currency)
 
 
 if __name__ == "__main__":
     main()
+    # history = load_history()
+    # compute_income(history, "2022-01-01", None, "EUR")
+
