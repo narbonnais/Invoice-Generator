@@ -85,7 +85,7 @@ Currency is optional. If no currency is provided, the script will use `USD` as d
 To summarize activity per year and per quarter, run the following command:
 
 ```bash
-python3 invoices.py summarize_history
+python3 invoices.py summarize_history -c <currency>
 ```
 
 The summary will be printed in the console:
