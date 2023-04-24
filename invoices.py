@@ -1,5 +1,6 @@
 import yaml
 from dataclasses import dataclass, field, asdict
+from collections import defaultdict
 import os
 from datetime import datetime
 import argparse
@@ -40,6 +41,11 @@ class Service:
     name: str
     units: int
     rate: float
+
+    @property
+    def total(self) -> float:
+        """Return the total price of the service"""
+        return self.units * self.rate
 
     @classmethod
     def from_dict(cls, data: dict) -> "Service":
@@ -148,7 +154,7 @@ class Invoice:
     @property
     def total(self) -> float:
         """Return the total price of the services"""
-        return sum([service.units * service.rate for service in self.services])
+        return sum([service.total for service in self.services])
 
     def add_service(self, service: Service) -> None:
         """Add a service to the invoice"""
@@ -338,8 +344,35 @@ def compute_income(history: History, start_date: str = None, end_date: str = Non
         invoice_date = datetime.strptime(entry.invoice_date, "%Y-%m-%d")
         if start_date <= invoice_date <= end_date:
             for service in entry.services:
-                total_income += service.rate * service.units
-    print(f"Total income: {total_income:.2f}")
+                total_income += service.total
+
+    formatted_revenue = "${:,.2f}".format(total_income)
+    print(f"Total income: {formatted_revenue}")
+
+
+def summarize_history(history: History) -> None:
+    """Summarizes history per year and per quarter"""
+    summary = defaultdict(lambda: defaultdict(float))
+
+    for entry in history.entries:
+        invoice_date = datetime.strptime(entry.invoice_date, "%Y-%m-%d")
+        year = invoice_date.year
+        quarter = (invoice_date.month - 1) // 3 + 1
+        quarter_key = f"Q{quarter}"
+
+        for service in entry.services:
+            revenue = service.total
+            summary[str(year)][quarter_key] += revenue
+            summary[str(year)]["total"] += revenue
+
+    print("Summary of the History:")
+    print("-" * 30)
+    for year, subtotals in sorted(summary.items()):
+        print(f"{year}:")
+        for quarter, revenue in sorted(subtotals.items()):
+            formatted_revenue = "${:,.2f}".format(revenue)
+            print(f"  {quarter}: {formatted_revenue}")
+    print("-" * 30)
 
 
 def ensure_data_paths_exists():
@@ -386,6 +419,9 @@ def main():
     compute_income_parser.add_argument("-s", "--start_date", help="Start date of the period in format YYYY-MM-DD")
     compute_income_parser.add_argument("-e", "--end_date", help="End date of the period in format YYYY-MM-DD")
 
+    summarize_history_parser = subparsers.add_parser(
+        "summarize_history", help="Summarize the history")
+
     args = parser.parse_args()
 
     if args.command == "create_invoice":
@@ -403,6 +439,10 @@ def main():
     elif args.command == "compute_income":
         history = load_history()
         compute_income(history, args.start_date, args.end_date)
+
+    elif args.command == "summarize_history":
+        history = load_history()
+        summarize_history(history)
 
 
 if __name__ == "__main__":
